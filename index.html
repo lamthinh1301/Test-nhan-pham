@@ -1,109 +1,89 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Thử Vận May 🎲</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ghi điểm người chơi</title>
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      text-align: center;
-      background: #f4f4f4;
-      padding: 50px;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 5px;
-    }
-    .player-list {
-      margin-top: 20px;
-      text-align: left;
-      max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
-      background: white;
-      padding: 10px;
-      border-radius: 10px;
-    }
-    .result {
-      font-weight: bold;
-      margin-top: 20px;
-      background: #d7ffd7;
-      padding: 10px;
-      border-radius: 10px;
-    }
+    body { font-family: Arial, sans-serif; padding: 40px; text-align: center; }
+    input, button { padding: 10px; font-size: 16px; margin: 10px; }
+    #resultSection { margin-top: 30px; display: none; }
+    #playersTable { width: 100%; max-width: 400px; margin: auto; border-collapse: collapse; }
+    #playersTable th, #playersTable td { border: 1px solid #ccc; padding: 8px; }
+    #playersTable th { background-color: #f2f2f2; }
   </style>
 </head>
 <body>
-  <h1>🎮 Thử Vận May 🎲</h1>
-  <p>Nhập tên bạn trước khi quay số:</p>
-  <input type="text" id="name" placeholder="Tên của bạn">
-  <button onclick="playGame()">🎯 Quay!</button>
-  <button onclick="resetGame()">🔁 Chơi lại</button>
-  <br><br>
-  <button onclick="adminReveal()">🔒 Quản lý: Công bố kết quả</button>
+  <h1>🏆 Ghi điểm người chơi 🏆</h1>
+  <input type="text" id="playerName" placeholder="Nhập tên của bạn" />
+  <br>
+  <button onclick="submitScore()">Gửi</button>
 
-  <div class="player-list" id="list"></div>
-  <div class="result" id="result"></div>
+  <div style="margin-top: 50px;">
+    <button onclick="showResults()">📋 Xem kết quả (Admin)</button>
+    <button onclick="resetScores()" style="background-color: red; color: white;">🗑️ Reset toàn bộ điểm</button>
+  </div>
+
+  <div id="resultSection">
+    <h2>Danh sách người chơi & điểm</h2>
+    <table id="playersTable">
+      <thead>
+        <tr><th>Tên</th><th>Điểm</th></tr>
+      </thead>
+      <tbody id="playersBody"></tbody>
+    </table>
+  </div>
 
   <script>
-    let players = [];
-    const adminCode = "1234"; // 🔐 Mã bí mật để công bố kết quả
+    let players = JSON.parse(localStorage.getItem("players") || "{}");
 
-    function playGame() {
-      const name = document.getElementById("name").value.trim();
-      if (!name) return alert("Vui lòng nhập tên!");
-
+    function submitScore() {
+      const name = document.getElementById("playerName").value.trim();
+      if (!name) {
+        alert("Vui lòng nhập tên.");
+        return;
+      }
+      if (players[name]) {
+        alert("Bạn đã chơi rồi!");
+        return;
+      }
       const score = Math.floor(Math.random() * 100) + 1;
-      players.push({ name, score });
-      alert(`${name} quay được ${score} điểm!`);
-
-      document.getElementById("name").value = "";
-      updateList();
-
-      const remaining = 10 - players.length;
-      document.getElementById("result").innerHTML = `🕒 Đã có ${players.length} người chơi. ${remaining > 0 ? "Cần thêm " + remaining + " người nữa." : "Đã đủ số người. Quản lý có thể công bố kết quả."}`;
+      players[name] = score;
+      localStorage.setItem("players", JSON.stringify(players));
+      alert("Bạn đã được ghi điểm: " + score);
+      document.getElementById("playerName").value = "";
     }
 
-    function updateList() {
-      const list = document.getElementById("list");
-      list.innerHTML = "<h3>Danh sách người chơi:</h3>";
-      players.forEach((p, i) => {
-        list.innerHTML += `${i + 1}. ${p.name} - ${p.score} điểm<br>`;
-      });
-    }
-
-    function displayTop3() {
-      players.sort((a, b) => b.score - a.score);
-      const top3 = players.slice(0, 3);
-      let resultText = "🏆 Top 3 người thắng cuộc:<br>";
-      if (top3[0]) resultText += `🥇 ${top3[0].name} - ${top3[0].score} điểm<br>`;
-      if (top3[1]) resultText += `🥈 ${top3[1].name} - ${top3[1].score} điểm<br>`;
-      if (top3[2]) resultText += `🥉 ${top3[2].name} - ${top3[2].score} điểm<br>`;
-      document.getElementById("result").innerHTML = resultText;
-    }
-
-    function adminReveal() {
-      if (players.length < 3) {
-        alert("Cần ít nhất 3 người chơi để công bố kết quả.");
+    function showResults() {
+      const adminCode = prompt("Nhập mã admin để xem kết quả:");
+      if (adminCode !== "12344321") {
+        alert("Sai mã admin!");
         return;
       }
 
-      const code = prompt("Nhập mã quản lý để công bố kết quả:");
-      if (code === adminCode) {
-        displayTop3();
-      } else {
-        alert("Sai mã! Không được phép công bố.");
+      const tbody = document.getElementById("playersBody");
+      tbody.innerHTML = "";
+      for (let name in players) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${name}</td><td>${players[name]}</td>`;
+        tbody.appendChild(tr);
       }
+      document.getElementById("resultSection").style.display = "block";
     }
 
-    function resetGame() {
-      if (confirm("Bạn có chắc muốn chơi lại không?")) {
-        players = [];
-        document.getElementById("list").innerHTML = "";
-        document.getElementById("result").innerHTML = "";
-        alert("Trò chơi đã được làm mới!");
+    function resetScores() {
+      const adminCode = prompt("Nhập mã admin để reset:");
+      if (adminCode !== "12344321") {
+        alert("Sai mã admin!");
+        return;
+      }
+
+      if (confirm("Bạn có chắc muốn xóa toàn bộ dữ liệu điểm không?")) {
+        localStorage.removeItem("players");
+        players = {};
+        document.getElementById("playersBody").innerHTML = "";
+        alert("Đã reset toàn bộ điểm.");
+        document.getElementById("resultSection").style.display = "none";
       }
     }
   </script>
