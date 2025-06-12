@@ -1,158 +1,149 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Vòng Quay Nhân Phẩm</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #e3f2fd, #ffffff);
+      font-family: Arial, sans-serif;
       text-align: center;
-      padding: 40px;
-      margin: 0;
+      padding: 20px;
+      background: #f3f3f3;
     }
     h1 {
-      color: #0d47a1;
+      color: #4a148c;
     }
     input, button {
-      padding: 12px 20px;
-      margin: 10px 5px;
+      padding: 10px;
+      margin: 5px;
       font-size: 16px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
     }
-    button {
-      background-color: #1976d2;
-      color: white;
-      border: none;
-    }
-    button:hover {
-      background-color: #1565c0;
-    }
-    #adminPanel, #adminActions {
-      display: none;
+    #result, #admin-panel, #leaderboard {
       margin-top: 20px;
+      padding: 15px;
+      background: #ffffff;
+      border-radius: 8px;
+      display: none;
     }
     table {
-      width: 90%;
-      margin: 20px auto;
+      margin: 0 auto;
       border-collapse: collapse;
     }
     th, td {
-      padding: 12px;
-      border: 1px solid #bbb;
-    }
-    th {
-      background-color: #f5f5f5;
-    }
-    #resultTable {
-      margin-top: 30px;
+      border: 1px solid #ccc;
+      padding: 8px 12px;
     }
   </style>
 </head>
 <body>
+
   <h1>🎯 Vòng Quay Nhân Phẩm 🎯</h1>
 
-  <div id="playerSection">
-    <input type="text" id="playerName" placeholder="Nhập tên của bạn">
-    <button onclick="play()">Quay</button>
-  </div>
+  <input type="text" id="nameInput" placeholder="Nhập tên của bạn" />
+  <button onclick="play()">Quay điểm</button>
 
-  <p id="message"></p>
-  <div id="resultTable"></div>
+  <div id="result"></div>
 
   <hr>
-  <div id="adminAccess">
-    <input type="password" id="adminCode" placeholder="Mã Admin">
-    <button onclick="checkAdmin()">🔐 Đăng nhập Admin</button>
+  <div>
+    <input type="password" id="adminCode" placeholder="Nhập mã admin (12344321)" />
+    <button onclick="loginAdmin()">Đăng nhập Admin</button>
   </div>
 
-  <div id="adminActions">
-    <h3>🔧 Bảng điều khiển Admin</h3>
-    <button onclick="revealScores()">📢 Công bố điểm</button>
-    <button onclick="resetAll()">♻️ Reset tất cả</button>
-    <input type="text" id="resetName" placeholder="Nhập tên cần reset">
-    <button onclick="resetOne()">🔁 Reset 1 người</button>
+  <div id="admin-panel">
+    <h2>🔐 Bảng Quản Lý Admin</h2>
+    <button onclick="revealAll()">📢 Công bố điểm</button>
+    <button onclick="resetAll()">🔄 Reset toàn bộ</button>
+    <br><br>
+    <input type="text" id="resetOneName" placeholder="Tên người cần reset" />
+    <button onclick="resetOne()">Reset người này</button>
   </div>
 
-<script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbwXY66kDQld99FREk9EaWcjk5FKUuriEi6N3X3b_u_o1Fg4MrylwDt802pn8_N3_JL2dg/exec";
-let isAdmin = false;
-let revealed = false;
+  <div id="leaderboard">
+    <h2>🏆 Bảng xếp hạng</h2>
+    <table id="rankTable">
+      <tr><th>STT</th><th>Tên</th><th>Điểm</th></tr>
+    </table>
+  </div>
 
-function play() {
-  const name = document.getElementById("playerName").value.trim();
-  if (!name) return alert("Vui lòng nhập tên của bạn!");
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbwXY66kDQld99FREk9EaWcjk5FKUuriEi6N3X3b_u_o1Fg4MrylwDt802pn8_N3_JL2dg/exec";
+    let currentUser = "";
 
-  fetch(`${scriptURL}?action=play&name=${encodeURIComponent(name)}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === "exists") {
-        document.getElementById("message").innerText = `Bạn đã chơi rồi! Điểm của bạn: ${data.score}`;
-      } else if (data.status === "ok") {
-        document.getElementById("message").innerText = `Bạn đã quay được: ${data.score} điểm!`;
+    function play() {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) return alert("Vui lòng nhập tên");
+      currentUser = name;
+      fetch(`${scriptURL}?action=play&name=${encodeURIComponent(name)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "exists") {
+            document.getElementById("result").innerHTML = `Bạn đã quay rồi! Điểm của bạn là: <strong>${data.score}</strong>`;
+          } else {
+            document.getElementById("result").innerHTML = `Bạn vừa quay được: <strong>${data.score}</strong>`;
+          }
+          document.getElementById("result").style.display = "block";
+          loadLeaderboard(false);
+        });
+    }
+
+    function loginAdmin() {
+      const code = document.getElementById("adminCode").value;
+      if (code === "12344321") {
+        document.getElementById("admin-panel").style.display = "block";
+        loadLeaderboard(true);
+      } else {
+        alert("Sai mã admin");
       }
-      loadTable();
-    });
-}
+    }
 
-function checkAdmin() {
-  const code = document.getElementById("adminCode").value;
-  if (code === "12344321") {
-    isAdmin = true;
-    document.getElementById("adminActions").style.display = "block";
-    loadTable(true);
-  } else {
-    alert("Mã admin không đúng!");
-  }
-}
+    function revealAll() {
+      loadLeaderboard(true);
+      document.getElementById("leaderboard").style.display = "block";
+    }
 
-function revealScores() {
-  revealed = true;
-  loadTable(true);
-}
+    function resetAll() {
+      if (!confirm("Bạn có chắc chắn muốn reset toàn bộ không?")) return;
+      fetch(`${scriptURL}?action=resetAll`)
+        .then(() => {
+          alert("Đã reset toàn bộ!");
+          location.reload();
+        });
+    }
 
-function resetAll() {
-  if (confirm("Bạn có chắc muốn reset toàn bộ người chơi không?"))
-    fetch(`${scriptURL}?action=resetAll`)
-      .then(res => res.text())
-      .then(() => {
-        alert("Đã reset tất cả!");
-        revealed = false;
-        loadTable();
-      });
-}
+    function resetOne() {
+      const name = document.getElementById("resetOneName").value.trim();
+      if (!name) return alert("Nhập tên người cần reset");
+      fetch(`${scriptURL}?action=resetOne&name=${encodeURIComponent(name)}`)
+        .then(res => res.text())
+        .then(text => {
+          if (text.includes("done")) {
+            alert(`Đã reset: ${name}`);
+            loadLeaderboard(true);
+          } else {
+            alert("Không tìm thấy người này.");
+          }
+        });
+    }
 
-function resetOne() {
-  const name = document.getElementById("resetName").value.trim();
-  if (!name) return alert("Vui lòng nhập tên người cần reset!");
-  fetch(`${scriptURL}?action=resetOne&name=${encodeURIComponent(name)}`)
-    .then(res => res.text())
-    .then(() => {
-      alert(`Đã reset cho ${name}`);
-      loadTable();
-    });
-}
+    function loadLeaderboard(showAll) {
+      fetch(`${scriptURL}?action=get`)
+        .then(res => res.json())
+        .then(data => {
+          const table = document.getElementById("rankTable");
+          table.innerHTML = "<tr><th>STT</th><th>Tên</th><th>Điểm</th></tr>";
+          let sorted = data.sort((a, b) => b.score - a.score);
+          sorted.forEach((row, index) => {
+            let score = (showAll || row.name === currentUser) ? row.score : '***';
+            const tr = `<tr><td>${index + 1}</td><td>${row.name}</td><td>${score}</td></tr>`;
+            table.innerHTML += tr;
+          });
+          if (showAll) {
+            document.getElementById("leaderboard").style.display = "block";
+          }
+        });
+    }
+  </script>
 
-function loadTable(showAll = false) {
-  fetch(`${scriptURL}?action=get`)
-    .then(res => res.json())
-    .then(data => {
-      let html = "<table><tr><th>STT</th><th>Tên</th><th>Điểm</th></tr>";
-      const current = document.getElementById("playerName").value.trim();
-      data.sort((a, b) => b.score - a.score);
-      data.forEach((item, i) => {
-        const isSelf = item.name === current;
-        const showScore = isAdmin || revealed || isSelf ? item.score : "***";
-        html += `<tr><td>${i + 1}</td><td>${item.name}</td><td>${showScore}</td></tr>`;
-      });
-      html += "</table>";
-      document.getElementById("resultTable").innerHTML = html;
-    });
-}
-
-loadTable();
-</script>
 </body>
 </html>
-
