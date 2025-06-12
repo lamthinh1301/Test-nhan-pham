@@ -21,7 +21,7 @@
     }
     #result {
       margin-top: 20px;
-      font-size: 22px;
+      font-size: 20px;
       font-weight: bold;
     }
     #adminPanel {
@@ -34,12 +34,9 @@
       background: #fff;
       padding: 10px;
       border-radius: 5px;
-    }
-    #adminBtn, #revealAllBtn {
-      margin-top: 20px;
-    }
-    #revealAllBtn {
-      display: none;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
     }
   </style>
 </head>
@@ -48,29 +45,28 @@
   <h1>🎮 Thử Vận May 🎲</h1>
   <p>Nhập tên bạn trước khi quay số:</p>
   <input type="text" id="playerName" placeholder="Tên của bạn">
+  <br>
   <button onclick="spin()">🎯 Quay!</button>
 
   <div id="result"></div>
 
-  <button id="revealAllBtn" onclick="showAll()">🔐 Quản lý: Công bố kết quả</button>
+  <hr style="margin: 40px 0;">
+
+  <h3>🔐 Quản lý kết quả</h3>
+  <input type="password" id="adminCode" placeholder="Nhập mã admin">
+  <button onclick="showAll()">📊 Xem kết quả</button>
 
   <div id="adminPanel">
-    <h3>📋 Danh sách tất cả người chơi</h3>
+    <h3>Kết quả trò chơi:</h3>
     <div id="playerList"></div>
   </div>
 
   <script>
-    const adminCode = "12344321";
-    const playerNameInput = document.getElementById("playerName");
-    const resultDiv = document.getElementById("result");
-    const revealAllBtn = document.getElementById("revealAllBtn");
-    const adminPanel = document.getElementById("adminPanel");
-    const playerListDiv = document.getElementById("playerList");
-
-    let players = JSON.parse(localStorage.getItem("players") || "{}");
+    const ADMIN_PASSWORD = "12344321";
+    const players = JSON.parse(localStorage.getItem("players") || "{}");
 
     function spin() {
-      const name = playerNameInput.value.trim();
+      const name = document.getElementById("playerName").value.trim();
       if (!name) {
         alert("Vui lòng nhập tên.");
         return;
@@ -78,45 +74,51 @@
 
       if (players[name]) {
         alert("Bạn đã quay rồi. Không thể quay lại!");
-        resultDiv.textContent = `🎉 Điểm của bạn là: ${players[name]}`;
-        return;
-      }
-
-      if (name === adminCode) {
-        revealAllBtn.style.display = "inline-block";
-        alert("Bạn đã đăng nhập với tư cách Admin. Bấm nút để xem kết quả.");
+        showPersonal(name);
         return;
       }
 
       const score = Math.floor(Math.random() * 100) + 1;
       players[name] = score;
       localStorage.setItem("players", JSON.stringify(players));
-      resultDiv.textContent = `🎉 Bạn đã quay được: ${score} điểm`;
+      showPersonal(name);
+    }
+
+    function showPersonal(name) {
+      const resultDiv = document.getElementById("result");
+      let display = `🎉 Điểm của bạn: ${players[name]} điểm\n\n`;
+      display += "🎭 Danh sách người chơi:\n";
+      for (const player in players) {
+        if (player === name) {
+          display += `- ${player}: ${players[player]} điểm\n`;
+        } else {
+          display += `- ${player}: ***\n`;
+        }
+      }
+      resultDiv.textContent = display;
     }
 
     function showAll() {
-      const name = playerNameInput.value.trim();
-      if (name !== adminCode) {
-        alert("Bạn không có quyền truy cập kết quả.");
-        return;
+      const code = document.getElementById("adminCode").value.trim();
+      const panel = document.getElementById("adminPanel");
+      const list = document.getElementById("playerList");
+      let output = "";
+
+      if (code === ADMIN_PASSWORD) {
+        for (const player in players) {
+          output += `${player}: ${players[player]} điểm\n`;
+        }
+      } else {
+        output = "Bạn không có quyền xem điểm.\n\nDanh sách người chơi:\n";
+        for (const player in players) {
+          output += `- ${player}: ***\n`;
+        }
       }
 
-      adminPanel.style.display = "block";
-      let text = "";
-      for (const [player, score] of Object.entries(players)) {
-        text += `${player}: ${score} điểm\n`;
-      }
-      
-      playerListDiv.textContent = text;
+      panel.style.display = "block";
+      list.textContent = output;
     }
-
-    // Tự động hiển thị điểm nếu đã chơi
-    window.onload = () => {
-      const name = playerNameInput.value.trim();
-      if (name && players[name]) {
-        resultDiv.textContent = `🎉 Điểm của bạn là: ${players[name]}`;
-      }
-    };
   </script>
 </body>
 </html>
+
