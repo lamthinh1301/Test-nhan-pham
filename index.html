@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Vòng quay nhân phẩm</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #FAD961, #F76B1C);
+            color: #333;
+            text-align: center;
+            padding: 30px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 500px;
+            margin: auto;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #F76B1C;
+        }
+        input[type=text], input[type=password] {
+            padding: 10px;
+            width: 80%;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #F76B1C;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #e86416;
+        }
+        .hidden {
+            display: none;
+        }
+        .player-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .player-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .player-list li {
+            padding: 6px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Vòng quay nhân phẩm 🎯</h1>
+        <div id="nameInput">
+            <p>Nhập tên của bạn để bắt đầu:</p>
+            <input type="text" id="playerName" placeholder="Tên của bạn">
+            <br>
+            <button onclick="startGame()">Bắt đầu quay</button>
+        </div>
+        <div id="result" class="hidden">
+            <h2>Kết quả của bạn</h2>
+            <p id="yourScore">Điểm: ?</p>
+        </div>
+
+        <div id="adminLogin" class="hidden">
+            <p>Admin: Nhập mã để truy cập</p>
+            <input type="password" id="adminCode" placeholder="Mã admin">
+            <br>
+            <button onclick="verifyAdmin()">Đăng nhập admin</button>
+        </div>
+
+        <div id="adminPanel" class="hidden">
+            <h2>Bảng quản lý admin</h2>
+            <button onclick="announceScores()">📢 Công bố điểm</button>
+            <button onclick="resetData()">♻️ Reset dữ liệu</button>
+            <div class="player-list" id="adminList">
+                <h3>Danh sách người chơi</h3>
+                <ul id="adminPlayers"></ul>
+            </div>
+        </div>
+
+        <div id="publicBoard" class="hidden">
+            <h3>Bảng người chơi</h3>
+            <ul id="publicPlayers"></ul>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASS = "12344321";
+        let playerData = JSON.parse(localStorage.getItem("vqnp_data") || "[]");
+        let hasPlayed = localStorage.getItem("vqnp_played");
+        let announced = localStorage.getItem("vqnp_announced");
+
+        function startGame() {
+            const name = document.getElementById("playerName").value.trim();
+            if (!name) return alert("Vui lòng nhập tên");
+
+            if (hasPlayed) return alert("Bạn chỉ được chơi 1 lần!");
+
+            const score = Math.floor(Math.random() * 101); // 0 - 100
+            localStorage.setItem("vqnp_played", "1");
+            localStorage.setItem("vqnp_name", name);
+            localStorage.setItem("vqnp_score", score);
+
+            playerData.push({ name, score });
+            localStorage.setItem("vqnp_data", JSON.stringify(playerData));
+            document.getElementById("yourScore").innerText = `Điểm: ${score}`;
+            document.getElementById("result").classList.remove("hidden");
+            document.getElementById("nameInput").classList.add("hidden");
+
+            showPublicBoard();
+        }
+
+        function showPublicBoard() {
+            const list = document.getElementById("publicPlayers");
+            list.innerHTML = "";
+            playerData.forEach(p => {
+                const li = document.createElement("li");
+                const isYou = p.name === localStorage.getItem("vqnp_name");
+                const score = isYou || localStorage.getItem("vqnp_announced") ? p.score : "***";
+                li.innerText = `${p.name}: ${score}`;
+                list.appendChild(li);
+            });
+            document.getElementById("publicBoard").classList.remove("hidden");
+
+            if (!hasPlayed) document.getElementById("adminLogin").classList.remove("hidden");
+        }
+
+        function verifyAdmin() {
+            const code = document.getElementById("adminCode").value;
+            if (code !== ADMIN_PASS) return alert("Sai mã admin");
+            document.getElementById("adminPanel").classList.remove("hidden");
+            document.getElementById("adminLogin").classList.add("hidden");
+
+            updateAdminList();
+        }
+
+        function updateAdminList() {
+            const list = document.getElementById("adminPlayers");
+            list.innerHTML = "";
+            const sorted = [...playerData].sort((a, b) => b.score - a.score);
+            sorted.forEach(p => {
+                const li = document.createElement("li");
+                li.innerText = `${p.name}: ${p.score}`;
+                list.appendChild(li);
+            });
+        }
+
+        function announceScores() {
+            localStorage.setItem("vqnp_announced", "1");
+            showPublicBoard();
+            updateAdminList();
+        }
+
+        function resetData() {
+            if (!confirm("Bạn có chắc muốn reset toàn bộ dữ liệu?")) return;
+            localStorage.removeItem("vqnp_data");
+            localStorage.removeItem("vqnp_name");
+            localStorage.removeItem("vqnp_score");
+            localStorage.removeItem("vqnp_played");
+            localStorage.removeItem("vqnp_announced");
+            location.reload();
+        }
+
+        window.onload = function () {
+            if (hasPlayed) {
+                document.getElementById("nameInput").classList.add("hidden");
+                document.getElementById("result").classList.remove("hidden");
+                document.getElementById("yourScore").innerText = `Điểm: ${localStorage.getItem("vqnp_score")}`;
+            }
+            showPublicBoard();
+        };
+    </script>
+</body>
+</html>
